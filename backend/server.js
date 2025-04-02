@@ -27,8 +27,9 @@ db.connect(err => {
   console.log('✅ Connected to MySQL database');
 });
 
+
 // ======================
-// 👤 USER AUTH ROUTES
+// 👤 AUTH ROUTES
 // ======================
 
 app.post('/api/users/signup', (req, res) => {
@@ -46,7 +47,7 @@ app.post('/api/users/signup', (req, res) => {
     }
 
     const insertQuery = 'INSERT INTO users (name, email, password, profileImage) VALUES (?, ?, ?, ?)';
-    db.query(insertQuery, [name, email, password, profileImage || null], (err, result) => {
+    db.query(insertQuery, [name, email, password, profileImage || null], (err) => {
       if (err) return res.status(500).json({ error: err.message });
       res.status(201).json({ message: 'User registered successfully' });
     });
@@ -68,6 +69,7 @@ app.post('/api/users/login', (req, res) => {
   });
 });
 
+
 // ======================
 // 🐾 PET ROUTES
 // ======================
@@ -80,7 +82,7 @@ app.get('/api/pets', (req, res) => {
 });
 
 app.get('/api/pets/:id', (req, res) => {
-  const id = req.params.id;
+  const { id } = req.params;
   db.query('SELECT * FROM pets WHERE id = ?', [id], (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
     if (results.length === 0) return res.status(404).json({ error: 'Pet not found' });
@@ -90,10 +92,8 @@ app.get('/api/pets/:id', (req, res) => {
 
 app.post('/api/pets', (req, res) => {
   const { name, breed, age, type, description, location, image, ownerId } = req.body;
-  console.log('📥 New pet data received:', req.body);
 
   if (!name || !breed || !age || !type || !description || !location) {
-    console.log('❌ Missing required fields');
     return res.status(400).json({ error: 'All required fields must be filled' });
   }
 
@@ -105,17 +105,13 @@ app.post('/api/pets', (req, res) => {
   const values = [name, breed, age, type, description, location, image || '', ownerId || null];
 
   db.query(query, values, (err, result) => {
-    if (err) {
-      console.error('❌ Error inserting pet:', err.message);
-      return res.status(500).json({ error: err.message });
-    }
-    console.log('✅ Pet added with ID:', result.insertId);
-    res.status(201).json({ id: result.insertId, name, breed, age, type, description, location, image });
+    if (err) return res.status(500).json({ error: err.message });
+    res.status(201).json({ id: result.insertId });
   });
 });
 
 app.put('/api/pets/:id', (req, res) => {
-  const id = req.params.id;
+  const { id } = req.params;
   const { name, breed, age, type, description, location, image } = req.body;
 
   const query = `
@@ -132,6 +128,7 @@ app.put('/api/pets/:id', (req, res) => {
   });
 });
 
+
 // ======================
 // 🔔 NOTIFICATION ROUTES
 // ======================
@@ -140,32 +137,19 @@ app.post('/api/notifications', (req, res) => {
   let { type, message, petId, fromUserId, toUserId } = req.body;
   const id = randomUUID();
 
-  console.log('📨 Creating notification:', req.body);
-
   if (!message || !toUserId) {
     return res.status(400).json({ error: 'Missing required fields for notification' });
   }
 
-  // Force adoption type if not explicitly set
-  if (!type) {
-    type = 'adoption';
-  }
+  if (!type) type = 'adoption';
 
   const query = `
     INSERT INTO notifications (id, type, message, petId, fromUserId, userId)
     VALUES (?, ?, ?, ?, ?, ?)
   `;
 
-  const values = [id, type, message, petId || null, fromUserId || null, toUserId];
-
-  db.query(query, values, (err) => {
-    if (err) {
-      console.error('❌ Notification creation failed:', err.message);
-      console.error('🔍 Query:', query);
-      console.error('📦 Values:', values);
-      return res.status(500).json({ error: err.message });
-    }
-    console.log('🔔 Notification created with ID:', id);
+  db.query(query, [id, type, message, petId || null, fromUserId || null, toUserId], (err) => {
+    if (err) return res.status(500).json({ error: err.message });
     res.status(201).json({ message: 'Notification sent' });
   });
 });
@@ -198,8 +182,64 @@ app.put('/api/notifications/mark-all/:userId', (req, res) => {
   });
 });
 
+
 // ======================
-// 🚀 Start Server
+// 💬 CHAT ROUTES
+// ======================
+
+app.post('/api/messages', (req, res) => {
+  const { senderId, receiverId, content } = req.body;
+  const id = randomUUID();
+
+  if (!senderId || !receiverId || !content) {
+    return res.status(400).json({ error: 'Missing fields' });
+  }
+
+  db.query(
+    'INSERT INTO messages (id, senderId, receiverId, content) VALUES (?, ?, ?, ?)',
+    [id, senderId, receiverId, content],
+    (err) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.status(201).json({ message: 'Message sent' });
+    }
+  );
+});
+
+app.get('/api/messages/:user1Id/:user2Id', (req, res) => {
+  const { user1Id, user2Id } = req.params;
+
+  const query = `
+    SELECT * FROM messages
+    WHERE (senderId = ? AND receiverId = ?)
+       OR (senderId = ? AND receiverId = ?)
+    ORDER BY createdAt ASC
+  `;
+
+  db.query(query, [user1Id, user2Id, user2Id, user1Id], (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(results);
+  });
+});
+
+app.get('/api/messages/threads/:userId', (req, res) => {
+  const { userId } = req.params;
+
+  const query = `
+    SELECT DISTINCT u.id AS userId, u.name, u.profileImage
+    FROM messages m
+    JOIN users u ON u.id = IF(m.senderId = ?, m.receiverId, m.senderId)
+    WHERE m.senderId = ? OR m.receiverId = ?
+  `;
+
+  db.query(query, [userId, userId, userId], (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(results);
+  });
+});
+
+
+// ======================
+// 🚀 START SERVER
 // ======================
 
 app.listen(port, () => {

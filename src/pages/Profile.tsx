@@ -9,12 +9,21 @@ import EmptyState from '@/components/EmptyState';
 import { User } from 'lucide-react';
 import api from '@/api';
 import { Pet, Notification } from '@/types';
+import ChatWindow from '@/components/ChatWindow';
+
+interface MessageThread {
+  userId: number;
+  name: string;
+  profileImage: string;
+}
 
 const Profile = () => {
   const { currentUser, isAuthenticated, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
   const [userPets, setUserPets] = useState<Pet[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [chatUserId, setChatUserId] = useState<number | null>(null);
+  const [threads, setThreads] = useState<MessageThread[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -23,7 +32,6 @@ const Profile = () => {
       return;
     }
 
-    // Fetch pets owned by current user
     api.get('/pets')
       .then(res => {
         const owned = res.data.filter((pet: Pet) => pet.ownerId === currentUser.id);
@@ -31,13 +39,16 @@ const Profile = () => {
       })
       .catch(err => console.error('❌ Failed to fetch pets:', err));
 
-    // Fetch notifications for this user
     api.get(`/notifications/${currentUser.id}`)
       .then(res => {
         console.log('🔔 Notifications fetched:', res.data);
         setNotifications(res.data);
       })
       .catch(err => console.error('❌ Failed to fetch notifications:', err));
+
+    api.get(`/messages/threads/${currentUser.id}`)
+      .then(res => setThreads(res.data))
+      .catch(err => console.error('❌ Failed to fetch chat threads:', err));
   }, [isAuthenticated, currentUser, navigate]);
 
   const markAsRead = (id: string) => {
@@ -88,6 +99,14 @@ const Profile = () => {
     }
   };
 
+  const handleOpenChat = (userId: number) => {
+    setChatUserId(userId);
+  };
+
+  const handleCloseChat = () => {
+    setChatUserId(null);
+  };
+
   if (!isAuthenticated || !currentUser) return null;
 
   return (
@@ -98,9 +117,10 @@ const Profile = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid grid-cols-2 w-full max-w-md">
+        <TabsList className="grid grid-cols-3 w-full max-w-md">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="chat">Messages</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">
@@ -180,7 +200,39 @@ const Profile = () => {
             onReject={handleReject}
           />
         </TabsContent>
+
+        <TabsContent value="chat">
+          <div className="bg-white rounded-lg border border-gray-100 shadow-sm p-4">
+            <h3 className="text-lg font-semibold mb-4">Your Conversations</h3>
+            {threads.length > 0 ? (
+              <ul className="space-y-3">
+                {threads.map((thread) => (
+                  <li
+                    key={thread.userId}
+                    className="flex items-center justify-between p-3 border rounded-md hover:bg-gray-50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={thread.profileImage || `https://ui-avatars.com/api/?name=${thread.name}`}
+                        alt={thread.name}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                      <span className="font-medium">{thread.name}</span>
+                    </div>
+                    <Button size="sm" onClick={() => handleOpenChat(thread.userId)}>
+                      Chat
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-500 text-sm">No conversations yet.</p>
+            )}
+          </div>
+        </TabsContent>
       </Tabs>
+
+      {chatUserId && <ChatWindow receiverId={chatUserId} onClose={handleCloseChat} />}
     </div>
   );
 };

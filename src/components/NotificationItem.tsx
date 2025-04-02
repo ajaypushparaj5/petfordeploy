@@ -4,6 +4,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Bell, Heart, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import ChatWindow from '@/components/ChatWindow';
 
 interface NotificationItemProps {
   notification: Notification;
@@ -14,6 +15,7 @@ interface NotificationItemProps {
 
 const NotificationItem = ({ notification, onMarkAsRead, onAccept, onReject }: NotificationItemProps) => {
   const [processing, setProcessing] = useState(false);
+  const [showChat, setShowChat] = useState(false);
 
   const getIcon = () => {
     switch (notification.type) {
@@ -44,7 +46,7 @@ const NotificationItem = ({ notification, onMarkAsRead, onAccept, onReject }: No
         </p>
 
         {notification.type === 'adoption' && onAccept && onReject && (
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 flex gap-2 flex-wrap">
             <Button
               size="sm"
               disabled={processing}
@@ -70,7 +72,18 @@ const NotificationItem = ({ notification, onMarkAsRead, onAccept, onReject }: No
             >
               Reject
             </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowChat(true)}
+            >
+              Chat
+            </Button>
           </div>
+        )}
+
+        {showChat && notification.fromUserId && (
+          <ChatWindow receiverId={notification.fromUserId} onClose={() => setShowChat(false)} />
         )}
       </div>
 
