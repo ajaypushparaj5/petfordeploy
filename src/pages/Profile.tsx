@@ -40,7 +40,6 @@ const Profile = () => {
       .catch(err => console.error('❌ Failed to fetch notifications:', err));
   }, [isAuthenticated, currentUser, navigate]);
 
-  // Mark individual notification as read
   const markAsRead = (id: string) => {
     api.put(`/notifications/${id}`)
       .then(() => {
@@ -51,13 +50,42 @@ const Profile = () => {
       .catch(err => console.error('❌ Error marking notification as read:', err));
   };
 
-  // Mark all notifications as read
   const markAllAsRead = () => {
     api.put(`/notifications/mark-all/${currentUser?.id}`)
       .then(() => {
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
       })
       .catch(err => console.error('❌ Error marking all notifications as read:', err));
+  };
+
+  const handleAccept = async (notification: Notification) => {
+    try {
+      await api.post('/notifications', {
+        type: 'confirmation',
+        message: `Your adoption request for pet ID ${notification.petId} was accepted!`,
+        fromUserId: currentUser?.id,
+        toUserId: notification.fromUserId,
+        petId: notification.petId,
+      });
+      markAsRead(notification.id);
+    } catch (err) {
+      console.error('❌ Failed to send confirmation:', err);
+    }
+  };
+
+  const handleReject = async (notification: Notification) => {
+    try {
+      await api.post('/notifications', {
+        type: 'rejection',
+        message: `Your adoption request for pet ID ${notification.petId} was declined.`,
+        fromUserId: currentUser?.id,
+        toUserId: notification.fromUserId,
+        petId: notification.petId,
+      });
+      markAsRead(notification.id);
+    } catch (err) {
+      console.error('❌ Failed to send rejection:', err);
+    }
   };
 
   if (!isAuthenticated || !currentUser) return null;
@@ -148,6 +176,8 @@ const Profile = () => {
             notifications={notifications}
             onMarkAllAsRead={markAllAsRead}
             onMarkAsRead={markAsRead}
+            onAccept={handleAccept}
+            onReject={handleReject}
           />
         </TabsContent>
       </Tabs>

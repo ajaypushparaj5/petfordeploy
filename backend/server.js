@@ -27,12 +27,53 @@ db.connect(err => {
   console.log('✅ Connected to MySQL database');
 });
 
+// ======================
+// 👤 USER AUTH ROUTES
+// ======================
+
+// 👤 POST /api/users/signup
+app.post('/api/users/signup', (req, res) => {
+  const { name, email, password, profileImage } = req.body;
+
+  if (!name || !email || !password) {
+    return res.status(400).json({ error: 'All fields are required' });
+  }
+
+  const checkQuery = 'SELECT * FROM users WHERE email = ?';
+  db.query(checkQuery, [email], (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (results.length > 0) {
+      return res.status(409).json({ error: 'User already exists' });
+    }
+
+    const insertQuery = 'INSERT INTO users (name, email, password, profileImage) VALUES (?, ?, ?, ?)';
+    db.query(insertQuery, [name, email, password, profileImage || null], (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.status(201).json({ message: 'User registered successfully' });
+    });
+  });
+});
+
+// 👤 POST /api/users/login
+app.post('/api/users/login', (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password required' });
+  }
+
+  const query = 'SELECT id, name, email, profileImage FROM users WHERE email = ? AND password = ?';
+  db.query(query, [email, password], (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (results.length === 0) return res.status(401).json({ error: 'Invalid credentials' });
+    res.json(results[0]);
+  });
+});
 
 // ======================
 // 🐾 PET ROUTES
 // ======================
 
-// 🔍 GET all pets
 app.get('/api/pets', (req, res) => {
   db.query('SELECT * FROM pets', (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -40,7 +81,6 @@ app.get('/api/pets', (req, res) => {
   });
 });
 
-// 🔍 GET pet by ID
 app.get('/api/pets/:id', (req, res) => {
   const id = req.params.id;
   db.query('SELECT * FROM pets WHERE id = ?', [id], (err, results) => {
@@ -50,7 +90,6 @@ app.get('/api/pets/:id', (req, res) => {
   });
 });
 
-// ➕ POST add a new pet
 app.post('/api/pets', (req, res) => {
   const { name, breed, age, type, description, location, image, ownerId } = req.body;
   console.log('📥 New pet data received:', req.body);
@@ -77,7 +116,6 @@ app.post('/api/pets', (req, res) => {
   });
 });
 
-// ✏️ PUT update a pet
 app.put('/api/pets/:id', (req, res) => {
   const id = req.params.id;
   const { name, breed, age, type, description, location, image } = req.body;
@@ -96,12 +134,10 @@ app.put('/api/pets/:id', (req, res) => {
   });
 });
 
-
 // ======================
 // 🔔 NOTIFICATION ROUTES
 // ======================
 
-// 📩 POST create a notification
 app.post('/api/notifications', (req, res) => {
   const { type, message, petId, fromUserId, toUserId } = req.body;
   const id = randomUUID();
@@ -131,7 +167,6 @@ app.post('/api/notifications', (req, res) => {
   });
 });
 
-// 📬 GET notifications for a user
 app.get('/api/notifications/:userId', (req, res) => {
   const { userId } = req.params;
   db.query(
@@ -144,7 +179,6 @@ app.get('/api/notifications/:userId', (req, res) => {
   );
 });
 
-// ☑️ PUT mark a single notification as read
 app.put('/api/notifications/:id', (req, res) => {
   const { id } = req.params;
   db.query('UPDATE notifications SET isRead = 1 WHERE id = ?', [id], (err) => {
@@ -153,7 +187,6 @@ app.put('/api/notifications/:id', (req, res) => {
   });
 });
 
-// ☑️ PUT mark all notifications for a user as read
 app.put('/api/notifications/mark-all/:userId', (req, res) => {
   const { userId } = req.params;
   db.query('UPDATE notifications SET isRead = 1 WHERE userId = ?', [userId], (err) => {
@@ -161,7 +194,6 @@ app.put('/api/notifications/mark-all/:userId', (req, res) => {
     res.json({ message: 'All notifications marked as read' });
   });
 });
-
 
 // ======================
 // 🚀 Start Server

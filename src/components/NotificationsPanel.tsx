@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Notification } from '@/types';
 import NotificationItem from './NotificationItem';
@@ -8,15 +7,19 @@ interface NotificationsPanelProps {
   notifications: Notification[];
   onMarkAllAsRead: () => void;
   onMarkAsRead: (id: string) => void;
+  onAccept?: (notification: Notification) => void;
+  onReject?: (notification: Notification) => void;
 }
 
 const NotificationsPanel = ({ 
   notifications, 
   onMarkAllAsRead, 
-  onMarkAsRead 
+  onMarkAsRead,
+  onAccept,
+  onReject
 }: NotificationsPanelProps) => {
   const unreadCount = notifications.filter(n => !n.isRead).length;
-  
+
   return (
     <div className="w-full max-w-md bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden">
       <div className="p-4 border-b border-gray-100 flex justify-between items-center">
@@ -26,7 +29,7 @@ const NotificationsPanel = ({
             <p className="text-xs text-gray-500">{unreadCount} unread</p>
           )}
         </div>
-        
+
         {unreadCount > 0 && (
           <Button 
             variant="ghost" 
@@ -38,7 +41,7 @@ const NotificationsPanel = ({
           </Button>
         )}
       </div>
-      
+
       <div className="max-h-96 overflow-y-auto">
         {notifications.length > 0 ? (
           notifications.map((notification) => (
@@ -46,6 +49,8 @@ const NotificationsPanel = ({
               key={notification.id} 
               notification={notification} 
               onMarkAsRead={onMarkAsRead}
+              onAccept={onAccept}
+              onReject={onReject}
             />
           ))
         ) : (

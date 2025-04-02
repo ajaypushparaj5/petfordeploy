@@ -1,5 +1,6 @@
-
+// ✅ Updated AuthContext.js - MySQL Integrated
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import api from '@/api';
 import { User } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -22,59 +23,12 @@ export const useAuth = () => {
   return context;
 };
 
-// Mock users for demo purposes
-const MOCK_USERS = [
-  {
-    id: '1',
-    name: 'John Doe',
-    email: 'john@gmail.com',
-    password: 'password',
-    profileImage: 'https://randomuser.me/api/portraits/men/1.jpg',
-  },
-  {
-    id: '2',
-    name: 'Jane Smith',
-    email: 'jane@gmail.com',
-    password: 'password',
-    profileImage: 'https://randomuser.me/api/portraits/women/1.jpg',
-  },
-  {
-    id: '3',
-    name: 'Ajay',
-    email: 'ajay@gmail.com',
-    password: 'password',
-    profileImage: 'https://randomuser.me/api/portraits/women/1.jpg',
-  },
-  {
-    id: '4',
-    name: 'akash',
-    email: 'akash@gmail.com',
-    password: 'password',
-    profileImage: 'https://randomuser.me/api/portraits/women/1.jpg',
-  },
-  {
-    id: '5',
-    name: 'Ajaz',
-    email: 'ajaz@gmail.com',
-    password: 'password',
-    profileImage: 'https://randomuser.me/api/portraits/women/1.jpg',
-  },
-  {
-    id: '6',
-    name: 'Daleesha',
-    email: 'daleesha@gmail.com',
-    password: 'password',
-    profileImage: 'https://randomuser.me/api/portraits/women/1.jpg',
-  },
-];
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check for saved user in localStorage (simulating persistent sessions)
     const savedUser = localStorage.getItem('currentUser');
     if (savedUser) {
       try {
@@ -88,65 +42,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(false);
   }, []);
 
-  const login = (email: string, password: string) => {
-    // Mock login logic
-    const user = MOCK_USERS.find(u => u.email === email && u.password === password);
-    
-    if (user) {
-      // Remove password before storing user
-      const { password: _, ...userWithoutPassword } = user;
-      setCurrentUser(userWithoutPassword);
-      localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
+  const login = async (email: string, password: string) => {
+    try {
+      const res = await api.post('/users/login', { email, password });
+      const user = res.data;
+      setCurrentUser(user);
+      localStorage.setItem('currentUser', JSON.stringify(user));
+      toast({ title: 'Success', description: "You've been logged in successfully!" });
+    } catch (error: any) {
       toast({
-        title: "Success",
-        description: "You've been logged in successfully!",
-      });
-    } else {
-      toast({
-        title: "Login failed",
-        description: "Invalid email or password. Try the demo account: john@example.com / password",
-        variant: "destructive",
+        title: 'Login failed',
+        description: error.response?.data?.error || 'An error occurred during login',
+        variant: 'destructive',
       });
     }
   };
 
-  const signup = (name: string, email: string, password: string) => {
-    // Mock signup logic
-    const userExists = MOCK_USERS.some(u => u.email === email);
-    
-    if (userExists) {
-      toast({
-        title: "Signup failed",
-        description: "An account with this email already exists.",
-        variant: "destructive",
+  const signup = async (name: string, email: string, password: string) => {
+    try {
+      await api.post('/users/signup', {
+        name,
+        email,
+        password,
+        profileImage: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=FFD700&color=000`
       });
-      return;
+      toast({ title: 'Account created', description: 'Your account has been created successfully!' });
+    } catch (error: any) {
+      toast({
+        title: 'Signup failed',
+        description: error.response?.data?.error || 'An error occurred during signup',
+        variant: 'destructive',
+      });
     }
-    
-    // Create new user (in a real app, this would be sent to an API)
-    const newUser = {
-      id: `user-${Date.now()}`,
-      name,
-      email,
-      profileImage: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=FFD700&color=000`,
-    };
-    
-    setCurrentUser(newUser);
-    localStorage.setItem('currentUser', JSON.stringify(newUser));
-    
-    toast({
-      title: "Account created",
-      description: "Your account has been created successfully!",
-    });
   };
 
   const logout = () => {
     setCurrentUser(null);
     localStorage.removeItem('currentUser');
-    toast({
-      title: "Logged out",
-      description: "You've been logged out successfully.",
-    });
+    toast({ title: 'Logged out', description: "You've been logged out successfully." });
   };
 
   return (
