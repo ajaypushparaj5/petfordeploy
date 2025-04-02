@@ -1,0 +1,82 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+
+    --primary: 50 100% 50%; /* Yellow */
+    --primary-foreground: 240 10% 3.9%;
+
+    --secondary: 0 0% 98%; /* Off white */
+    --secondary-foreground: 240 10% 3.9%;
+
+    --muted: 50 20% 95%;
+    --muted-foreground: 240 3.8% 46.1%;
+
+    --accent: 50 80% 80%;
+    --accent-foreground: 240 5.9% 10%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 50 100% 50%;
+
+    --radius: 1.5rem;
+
+    --sidebar-background: 50 100% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 50 100% 50%;
+    --sidebar-primary-foreground: 240 5.9% 10%;
+    --sidebar-accent: 50 80% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 50 20% 90%;
+    --sidebar-ring: 50 100% 50%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+@layer components {
+  .pet-image {
+    @apply rounded-full object-cover aspect-square;
+  }
+  
+  .btn-primary {
+    @apply bg-yellow-900 hover:bg-yellow-800 text-black font-semibold py-2 px-4 rounded-full transition-colors;
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary hover:bg-gray-200 text-black font-semibold py-2 px-4 rounded-full transition-colors;
+  }
+  
+  .card-hover {
+    @apply transition-transform duration-200 hover:scale-105;
+  }
+  
+  .nav-link {
+    @apply text-foreground hover:text-primary transition-colors px-3 py-2 rounded-md;
+  }
+  
+  .nav-link-active {
+    @apply text-primary font-medium;
+  }
+}
