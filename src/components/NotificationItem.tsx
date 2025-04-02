@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Notification } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 import { Bell, Heart, Check } from 'lucide-react';
@@ -13,6 +13,8 @@ interface NotificationItemProps {
 }
 
 const NotificationItem = ({ notification, onMarkAsRead, onAccept, onReject }: NotificationItemProps) => {
+  const [processing, setProcessing] = useState(false);
+
   const getIcon = () => {
     switch (notification.type) {
       case 'interest':
@@ -43,8 +45,31 @@ const NotificationItem = ({ notification, onMarkAsRead, onAccept, onReject }: No
 
         {notification.type === 'adoption' && onAccept && onReject && (
           <div className="mt-3 flex gap-2">
-            <Button size="sm" onClick={() => onAccept(notification)}>Accept</Button>
-            <Button size="sm" variant="destructive" onClick={() => onReject(notification)}>Reject</Button>
+            <Button
+              size="sm"
+              disabled={processing}
+              onClick={async () => {
+                console.log('✅ Accept clicked:', notification);
+                setProcessing(true);
+                await onAccept(notification);
+                setProcessing(false);
+              }}
+            >
+              Accept
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              disabled={processing}
+              onClick={async () => {
+                console.log('❌ Reject clicked:', notification);
+                setProcessing(true);
+                await onReject(notification);
+                setProcessing(false);
+              }}
+            >
+              Reject
+            </Button>
           </div>
         )}
       </div>

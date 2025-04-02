@@ -90,7 +90,7 @@ const PetDetails = () => {
 
     try {
       await api.post('/notifications', {
-        type: 'interest',
+        type: 'adoption',
         message: `${currentUser.name} expressed interest in adopting ${pet.name}.`,
         petId: pet.id,
         fromUserId: currentUser.id,
@@ -98,13 +98,13 @@ const PetDetails = () => {
       });
 
       toast({
-        title: 'Interest recorded!',
+        title: 'Adoption request sent!',
         description: `You expressed interest in adopting ${pet.name}.`,
       });
     } catch (err) {
       toast({
         title: 'Notification failed',
-        description: 'Could not send interest notification.',
+        description: 'Could not send adoption request.',
         variant: 'destructive',
       });
     }

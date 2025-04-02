@@ -31,7 +31,6 @@ db.connect(err => {
 // 👤 USER AUTH ROUTES
 // ======================
 
-// 👤 POST /api/users/signup
 app.post('/api/users/signup', (req, res) => {
   const { name, email, password, profileImage } = req.body;
 
@@ -54,7 +53,6 @@ app.post('/api/users/signup', (req, res) => {
   });
 });
 
-// 👤 POST /api/users/login
 app.post('/api/users/login', (req, res) => {
   const { email, password } = req.body;
 
@@ -139,13 +137,18 @@ app.put('/api/pets/:id', (req, res) => {
 // ======================
 
 app.post('/api/notifications', (req, res) => {
-  const { type, message, petId, fromUserId, toUserId } = req.body;
+  let { type, message, petId, fromUserId, toUserId } = req.body;
   const id = randomUUID();
 
   console.log('📨 Creating notification:', req.body);
 
-  if (!type || !message || !toUserId) {
+  if (!message || !toUserId) {
     return res.status(400).json({ error: 'Missing required fields for notification' });
+  }
+
+  // Force adoption type if not explicitly set
+  if (!type) {
+    type = 'adoption';
   }
 
   const query = `
